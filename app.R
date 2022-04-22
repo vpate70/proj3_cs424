@@ -19,7 +19,7 @@ temp <- lapply(files, fread, sep=",")
 data <- rbindlist( temp )
 rm(temp)
 gc()
-
+options(scipen=10000)
 # Define UI for application
 ui <- dashboardPage(
   dashboardHeader(title = "CS 424 Spring 2022 Project 3"),
@@ -89,7 +89,9 @@ ui <- dashboardPage(
                    plotOutput("all_rides_hour_day",width="100%"),
                    plotOutput("all_rides_year_day",width="100%"),
                    plotOutput("all_rides_weekday",width="100%"),
-                   plotOutput("all_rides_monthly",width="100%")
+                   plotOutput("all_rides_monthly",width="100%"),
+                   plotOutput("all_binned_mileage",width="100%"),
+                   plotOutput("all_trip_time",width="100%")
                    )
                  )
                  
@@ -142,9 +144,10 @@ server <- function(input, output) {
       #Fix x labels
       df <- aggregate(data$`Trip Seconds`, by=list(Category=data$`Trip Start Timestamp`), FUN=length)
       colnames(df) = c("date","rides")
-      df$date = substr(df$date,5,8)
+      df$date = ymd(df$date)
       ggplot(df, aes(x=date,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
         labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each day')
+      
         
     })
     
@@ -165,6 +168,7 @@ server <- function(input, output) {
       ggplot(df, aes(x=weekday,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
         labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each week day')
       
+      
     })
     
     output$all_rides_monthly <- renderPlot({
@@ -181,18 +185,26 @@ server <- function(input, output) {
       
     })
     
-    output$binned_mileage <- renderPlot({
-      df <- aggregate(data$`Trip Seconds`, by=list(Category=data$`Trip Start Timestamp`), FUN=length)
-      colnames(df) = c("date","rides")
-      df$date = substr(df$date,5,6)
-      df <- aggregate(df$rides, by=list(Category=df$date), FUN=sum)
-      colnames(df) = c("date","rides")
-      df$date <-c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec')
-      df$date <- factor(df$date,levels = c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'))
-      
-      ggplot(df, aes(x=date,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
-        labs(x="Month", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each month')
-      
+    output$all_binned_mileage <- renderPlot({
+      df <- data.frame(data$`Trip Miles`)
+      colnames(df) = c("miles")
+      df <- df %>% mutate(bin = cut(miles, breaks=c(.49,1,1.5,2,2.5,3,4,5,10,15,20,25,50,75,100)))
+      df <- aggregate(df$miles, by=list(Category=df$bin), FUN=length)
+      colnames(df) = c("miles","rides")
+      ggplot(df, aes(x=miles,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
+        labs(x="Miles", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for distance') +scale_x_discrete(guide = guide_axis(angle = 90))    
+    })
+    
+    output$all_trip_time <- renderPlot({
+      df <- data.frame(data$`Trip Seconds`)
+      colnames(df) = c("seconds")
+      df <- df %>% mutate(bin = cut(seconds, breaks=c(59,180,360,600,900,1800,3600,5400,7200,10800,18000)))
+      df <- aggregate(df$seconds, by=list(Category=df$bin), FUN=length)
+      colnames(df) = c("seconds","rides")
+      df$seconds <- c('(59,180]','(180,360]','(360,600]','(600,900]','(900,1800]','(1800,3600]','(3600,5400]','(5400,7200]','(7200,10800]','(10800,18000]')
+      df$seconds <- factor(df$seconds,levels =  c('(59,180]','(180,360]','(360,600]','(600,900]','(900,1800]','(1800,3600]','(3600,5400]','(5400,7200]','(7200,10800]','(10800,18000]'))
+      ggplot(df, aes(x=seconds,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
+        labs(x="Seconds", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for time of ride') +scale_x_discrete(guide = guide_axis(angle = 90))    
     })
 }
 
