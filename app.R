@@ -85,7 +85,7 @@ ui <- dashboardPage(
                  ),
                  conditionalPanel(
                    condition = "input.datesChange == 'One Day'",
-                   plotOutput("all_rides_year_day",width="100%")
+                   plotOutput("all_rides_hour_day",width="100%")
                  )
                  
                ),
@@ -140,7 +140,24 @@ server <- function(input, output) {
         labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each day')
         
     })
+    
+    output$all_rides_hour_day <- renderPlot({
+      df <- aggregate(data$`Trip Seconds`, by=list(Category=data$Hour), FUN=length)
+      colnames(df) = c("hour","rides")
+      ggplot(df, aes(x=hour,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
+        labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each day')
+      
+    })
+    
+    output$all_rides_weekday <- renderPlot({
+      df <- data.frame(data$`Trip Start Timestamp`,data$Hour)
+      colnames(df) = c("weekday","rides")
+      ggplot(df, aes(x=hour,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
+        labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each day')
+      
+    })
 }
+
 
 # Run the application 
 shinyApp(ui = ui, server = server)
