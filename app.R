@@ -22,7 +22,7 @@ gc()
 
 # Define UI for application
 ui <- dashboardPage(
-  dashboardHeader(title = "CS 424 Spring 2022 Project 2"),
+  dashboardHeader(title = "CS 424 Spring 2022 Project 3"),
   #edit to make mini menu items for both
   
   dashboardSidebar(disable = FALSE, collapsed = FALSE,
@@ -85,7 +85,12 @@ ui <- dashboardPage(
                  ),
                  conditionalPanel(
                    condition = "input.datesChange == 'One Day'",
-                   plotOutput("all_rides_hour_day",width="100%")
+                   verticalLayout(
+                   plotOutput("all_rides_hour_day",width="100%"),
+                   plotOutput("all_rides_year_day",width="100%"),
+                   plotOutput("all_rides_weekday",width="100%"),
+                   plotOutput("all_rides_monthly",width="100%")
+                   )
                  )
                  
                ),
@@ -134,8 +139,10 @@ ui <- dashboardPage(
 server <- function(input, output) {
 
     output$all_rides_year_day <- renderPlot({
+      #Fix x labels
       df <- aggregate(data$`Trip Seconds`, by=list(Category=data$`Trip Start Timestamp`), FUN=length)
       colnames(df) = c("date","rides")
+      df$date = substr(df$date,5,8)
       ggplot(df, aes(x=date,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
         labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each day')
         
@@ -145,15 +152,46 @@ server <- function(input, output) {
       df <- aggregate(data$`Trip Seconds`, by=list(Category=data$Hour), FUN=length)
       colnames(df) = c("hour","rides")
       ggplot(df, aes(x=hour,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
-        labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each day')
+        labs(x="Hour", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each hour')
       
     })
     
     output$all_rides_weekday <- renderPlot({
-      df <- data.frame(data$`Trip Start Timestamp`,data$Hour)
+      df <- aggregate(data$`Trip Seconds`, by=list(Category=data$`Trip Start Timestamp`), FUN=length)
+      colnames(df) = c("date","rides")
+      df$date <- ymd(df$date)
+      df$date<- lubridate::wday(df$date,abbr = TRUE, label = TRUE)
       colnames(df) = c("weekday","rides")
-      ggplot(df, aes(x=hour,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
-        labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each day')
+      ggplot(df, aes(x=weekday,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
+        labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each week day')
+      
+    })
+    
+    output$all_rides_monthly <- renderPlot({
+      df <- aggregate(data$`Trip Seconds`, by=list(Category=data$`Trip Start Timestamp`), FUN=length)
+      colnames(df) = c("date","rides")
+      df$date = substr(df$date,5,6)
+      df <- aggregate(df$rides, by=list(Category=df$date), FUN=sum)
+      colnames(df) = c("date","rides")
+      df$date <-c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec')
+      df$date <- factor(df$date,levels = c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'))
+      
+      ggplot(df, aes(x=date,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
+        labs(x="Month", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each month')
+      
+    })
+    
+    output$binned_mileage <- renderPlot({
+      df <- aggregate(data$`Trip Seconds`, by=list(Category=data$`Trip Start Timestamp`), FUN=length)
+      colnames(df) = c("date","rides")
+      df$date = substr(df$date,5,6)
+      df <- aggregate(df$rides, by=list(Category=df$date), FUN=sum)
+      colnames(df) = c("date","rides")
+      df$date <-c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec')
+      df$date <- factor(df$date,levels = c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'))
+      
+      ggplot(df, aes(x=date,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
+        labs(x="Month", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each month')
       
     })
 }

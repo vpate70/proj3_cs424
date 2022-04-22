@@ -14,7 +14,4 @@ data <- rbindlist( temp )
 rm(temp)
 gc()
 
-data %>%
-  mutate( DayMonth= format(as.Date(`Trip Start Timestamp`), "%m/%d"))
-
-df <- aggregate(data$`Trip Seconds`, by=list(Category=data$`Trip Start Timestamp`), FUN=length)
+data$`Trip Start Timestamp` <- ymd(data$`Trip Start Timestamp`)
