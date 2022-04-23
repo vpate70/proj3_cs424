@@ -81,5 +81,10 @@ if(length(df['area']) < 77){
   dt <- data.table(area,perc)
   df <- bind_rows(dt,df)
 }
+colnames(df)<- c('community','perc')
+dt <- shapeData
+
+dt@data <- inner_join(df,dt@data,by='community')
+
 df <-df[df$area == "MOUNT_GREENWOOD"]
 comAreaList == dif

@@ -135,7 +135,7 @@ ui <- dashboardPage(
                             selectInput("table",'Table',c('Graph','Table'),selected = 'Graph'),
                             selectInput("parts",'Parts',c('Default','Community','Company'),selected = 'Community'),
                             selectInput("compNames", "Company", com, selected = "5 Star Taxi"),
-                            selectInput("comArea","Community Area", append(sort(shapeData$community),'City_of_Chicago'), selected = 'City_of_Chicago'),
+                            selectInput("comArea","Community Area", append(sort(shapeData$community),'City_of_Chicago'), selected = 'WEST_LAWN'),
                             selectInput("tofrom", "To/From", c("To","From"),selected ='To')
                    ),
                    
@@ -458,6 +458,7 @@ server <- function(input, output,session) {
       )
     })
     
+    #fix bins sometimes dont exists WEST_LAWN from
     triptime <- reactive({
       if(input$parts == 'Default' | communityArea() == 78){
         df <- data.table(data$`Trip Seconds`)
@@ -539,6 +540,7 @@ server <- function(input, output,session) {
             dt <- data.table(area,perc)
             df <- bind_rows(dt,df)
           }
+          colnames(df) <- c('community','perc')
           return(df)
         }
         else if(input$tofrom == 'From'){
@@ -564,6 +566,7 @@ server <- function(input, output,session) {
             dt <- data.table(area,perc)
             df <- bind_rows(dt,df)
           }
+          colnames(df) <- c('community','perc')
           return(df)
         }
 
@@ -574,7 +577,7 @@ server <- function(input, output,session) {
       df <- percent_gr()
       verticalLayout(
       renderPlot({
-      ggplot(df, aes(x=area,y=perc)) + geom_bar( stat='identity', fill='steelblue') +
+      ggplot(df, aes(x=community,y=perc)) + geom_bar( stat='identity', fill='steelblue') +
         labs(x="Area", y="percent")+ scale_y_continuous(label=comma) +ggtitle(label = paste('%',input$tofrom, input$comArea)) +scale_x_discrete(guide = guide_axis(angle = 90))    
       })
       )
@@ -583,10 +586,21 @@ server <- function(input, output,session) {
     
     #three differ leaflets
     output$leaflet <- renderLeaflet({
+      if(input$comArea != 'City_of_Chicago'){
       df <- percent_gr()
+      dt <- shapeData
+      dt@data <- inner_join(df,dt@data,by='community')
+      mypal <- colorBin("Greens", dt@data$perc, 6, pretty = FALSE)
       leaflet()  %>% addTiles() %>% 
         setView(lng = -87.683177, lat = 41.921832, zoom = 11) %>% 
-        addPolygons(data=shapeData,weight=5,col = 'grey',label = )
+        addPolygons(data=dt,weight=2,fillOpacity = 0.7,
+                    fillColor = mypal(dt@data$perc)) %>%
+        addLegend(position = "bottomright", pal = mypal, values = dt@data$perc,
+                title = "percent",
+                opacity = 0.7) %>%
+      
+        addMarkers()
+      }
     })
 }
 
