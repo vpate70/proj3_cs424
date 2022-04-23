@@ -705,7 +705,59 @@ server <- function(input, output,session) {
 
       }
       else if(input$parts == 'Company'){
-        
+        if(input$tofrom == 'To'){
+          df <- data[data$Company == input$compNames]
+          df <- group_by(df,`Pickup Community Area`) %>% summarise(perc = length(`Dropoff Community Area`))
+          colnames(df) = c('area','perc')
+          colsum <- sum(df$perc)
+          df$perc <- (df$perc/colsum)*100
+          df['area'] = lapply(df['area'],function(x) comAreaList[x])
+          if(length(df['area']) < 77){
+            area <- c()
+            perc <- c()
+            for (e in comAreaList){
+              if(any(df['area']==e)){
+                
+              }
+              else{
+                area <- append(area,e)
+                perc <- append(perc,0)
+              }
+            }
+            
+            dt <- data.table(area,perc)
+            df <- bind_rows(dt,df)
+          }
+          colnames(df) <- c('community','perc')
+          return(df)
+        }
+        else if(input$tofrom =='From'){
+          df <- data[data$Company == input$compNames]
+          df <- group_by(df,`Dropoff Community Area`) %>% summarise(perc = length(`Pickup Community Area`))
+          colnames(df) = c('area','perc')
+          colsum <- sum(df$perc)
+          df$perc <- (df$perc/colsum)*100
+          df['area'] = lapply(df['area'],function(x) comAreaList[x])
+          if(length(df['area']) < 77){
+            area <- c()
+            perc <- c()
+            for (e in comAreaList){
+              if(any(df['area']==e)){
+                
+              }
+              else{
+                area <- append(area,e)
+                perc <- append(perc,0)
+              }
+            }
+            
+            dt <- data.table(area,perc)
+            df <- bind_rows(dt,df)
+          }
+          colnames(df) <- c('community','perc')
+          return(df)
+          
+        }
       }
     })
     
@@ -738,7 +790,7 @@ server <- function(input, output,session) {
 
     })
     
-    #three differ leaflets
+
     output$leaflet <- renderLeaflet({
       df <- percent_gr()
       dt <- shapeData
