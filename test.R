@@ -26,7 +26,6 @@ df <- group_by(df,date) %>% summarise(rides = sum(rides))
 colnames(df) = c("date","rides")
 df$date <-c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec')
 df$date <- factor(df$date,levels = c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'))
-saveRDS(df,'./data/all_rides_monthly.rds')
 
 df <- data.frame(data$`Trip Seconds`)
 colnames(df) = c("seconds")
@@ -35,9 +34,11 @@ df<- group_by(df,bin) %>% summarise(rides = length(seconds))
 colnames(df) = c("seconds","rides")
 df$seconds <- c('(59,180]','(180,360]','(360,600]','(600,900]','(900,1800]','(1800,3600]','(3600,5400]','(5400,7200]','(7200,10800]','(10800,18000]')
 df$seconds <- factor(df$seconds,levels =  c('(59,180]','(180,360]','(360,600]','(600,900]','(900,1800]','(1800,3600]','(3600,5400]','(5400,7200]','(7200,10800]','(10800,18000]'))
-saveRDS(df,'./data/all_trip_time.rds')
 
-df <- group_by(data,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
-colnames(df) = c("date","rides")
-df$date = ymd(df$date)
-saveRDS(df,'./data/all_rides_year_day.rds')
+x <- shapeData$community 
+`test var` <- t
+x <- 'test'
+test<- 5
+get(x)
+
+data[data$`Dropoff Community Area` == 4]
