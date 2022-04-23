@@ -103,6 +103,7 @@ MORGAN_PARK<-75
 OHARE<-76
 EDGEWATER<-77
 EDISON_PARK<-9
+City_of_Chicago <- -1
 
 
 com <- c('All','24 Seven Taxi','312 Medallion Mgmt.','5 Star Taxi','Adwar H. Nikola','Ahzmi','American United','American United Taxi','Arrington Ent.','Babylon Express','Benny Jona','Blue Diamond','Blue Ribbon Taxi','Checker Taxi','Chicago Carriage Cab','Chicago Ind.','Chicago Medallion Mgmt.','Chicago Star Taxicab','Chicago Taxicab','Choice Taxi','Chuks Cab','City Svc.','David K. Cab','Flash Cab','G.L.B. Cab','Globe Taxi','Gold Coast Taxi','JBL Cab.','Jay Kim','KOAM Taxi','Leonard Cab','Luhak','Medallion Leasin','Metro Jet Taxi A','N and W Cab','Nova Taxi','Omar Jada','Patriot Taxi Dba Peace Taxi','Petani Cab','RC Andrews Cab','Salifu Bawa','Sam Mestas','Santamaria Express','Sbeih','Sergey Cab','Setare','Star North Mgmt.','Sun Taxi','Tasha ride','Taxi Aff. Svc. Yellow','Taxi Aff. Svcs.','Taxicab Ins. Agcy.','Top Cab Aff.','U Taxicab','Yellow Cab')
@@ -131,9 +132,10 @@ ui <- dashboardPage(
                             selectInput("distUnit", "Distance Unit", c('mile','km'), selected = "mile")
                    ),
                    menuItem("Select options",
-                            selectInput("parts",'Parts',c('Default','Community','Company'),selected = 'Default'),
+                            selectInput("table",'Table',c('Graph','Table'),selected = 'Graph'),
+                            selectInput("parts",'Parts',c('Default','Community','Company'),selected = 'Community'),
                             selectInput("compNames", "Company", com, selected = "5 Star Taxi"),
-                            selectInput("comArea","Community Area", append(sort(shapeData$community),'All'), selected = 'DOUGLAS'),
+                            selectInput("comArea","Community Area", append(sort(shapeData$community),'City_of_Chicago'), selected = 'City_of_Chicago'),
                             selectInput("tofrom", "To/From", c("To","From"),selected ='To')
                    ),
                    
@@ -193,7 +195,7 @@ server <- function(input, output,session) {
     return(get(input$comArea))
   })
     rides_year_day <- reactive({
-      if(input$parts == 'Default'){
+      if(input$parts == 'Default' || communityArea() == -1){
         df <- group_by(data,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
         colnames(df) = c("date","rides")
         df$date = ymd(df$date)
@@ -207,8 +209,16 @@ server <- function(input, output,session) {
           df$date = ymd(df$date)
           return(df)
         }
+        else if(input$tofrom == 'From'){
+          df <- data[data$`Pickup Community Area` == communityArea()]
+          df <- group_by(df,`Trip Start Timestamp`) %>% summarise(rides = length(`Pickup Community Area`))
+          colnames(df) = c("date","rides")
+          df$date = ymd(df$date)
+          return(df)
+        }
       }
     })
+    
     output$all_rides_year_day <- renderUI({
       df <- rides_year_day()
       verticalLayout(
@@ -220,9 +230,22 @@ server <- function(input, output,session) {
     })
     
     rides_hour_day <- reactive({
-      if(input$parts == "Default"){
+      if(input$parts == "Default" | communityArea() == -1){
         df <- group_by(data,Hour) %>% summarise(rides = length(`Trip Seconds`))
         return(df)
+      }
+      else if(input$parts == 'Community'){
+        if(input$tofrom == 'To'){
+          df <- data[data$`Dropoff Community Area` == communityArea()]
+          df <- group_by(df,Hour) %>% summarise(rides = length(`Trip Seconds`))
+          return(df)
+        }
+        else if(input$tofrom == 'From'){
+          df <- data[data$`Pickup Community Area` == communityArea()]
+          df <- group_by(df,Hour) %>% summarise(rides = length(`Trip Seconds`))
+          return(df)
+        }
+        
       }
     })
     
@@ -242,7 +265,7 @@ server <- function(input, output,session) {
         return(df)
       }
     })
-    
+
     output$all_rides_hour_day <- renderPlot({
       df <- timeform()
       ggplot(df, aes(x=hour,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
@@ -251,7 +274,7 @@ server <- function(input, output,session) {
     })
     
     rides_weekday <- reactive({
-      if(input$parts == "Default"){
+      if(input$parts == "Default" | communityArea() == -1){
         df <- group_by(data,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
         colnames(df) = c("date","rides")
         df$date <- ymd(df$date)
@@ -259,8 +282,32 @@ server <- function(input, output,session) {
         colnames(df) = c("weekday","rides")
         return(df)
       }
+      else if(input$parts == 'Community'){
+        if(input$tofrom == 'To'){
+          df <- data[data$`Dropoff Community Area` == communityArea()]
+          df <- group_by(df,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
+          colnames(df) = c("date","rides")
+          df$date <- ymd(df$date)
+          df$date<- lubridate::wday(df$date,abbr = TRUE, label = TRUE)
+          colnames(df) = c("weekday","rides")
+          return(df)
+          
+        }
+        else if(input$tofrom == 'From'){
+          df <- data[data$`Pickup Community Area` == communityArea()]
+          df <- group_by(df,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
+          colnames(df) = c("date","rides")
+          df$date <- ymd(df$date)
+          df$date<- lubridate::wday(df$date,abbr = TRUE, label = TRUE)
+          colnames(df) = c("weekday","rides")
+          return(df)
+        }
+        
+        
+      }
     })
     
+
     output$all_rides_weekday <- renderPlot({
       df <- rides_weekday()
       ggplot(df, aes(x=weekday,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
@@ -268,8 +315,18 @@ server <- function(input, output,session) {
       
       
     })
+# 
+#     else if(input$parts == 'Community'){
+#     if(input$tofrom == 'To'){
+#       df <- data[data$`Dropoff Community Area` == communityArea()]
+#     }
+#     else if(input$tofrom == 'From'){
+#       df <- data[data$`Pickup Community Area` == communityArea()]
+#     }
+# 
+#     }
     rides_monthly <- reactive({
-      if(input$parts == "Default"){
+      if(input$parts == "Default" | communityArea() == -1){
         df <- group_by(data,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
         colnames(df) = c("date","rides")
         df$date = substr(df$date,5,6)
@@ -279,7 +336,33 @@ server <- function(input, output,session) {
         df$date <- factor(df$date,levels = c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'))
         return(df)
       }
+      else if(input$parts == 'Community'| communityArea() == -1){
+        if(input$tofrom == 'To'){
+          df <- data[data$`Dropoff Community Area` == communityArea()]
+          df <- group_by(df,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
+          colnames(df) = c("date","rides")
+          df$date = substr(df$date,5,6)
+          df <- group_by(df,date) %>% summarise(rides = sum(rides))
+          colnames(df) = c("date","rides")
+          df$date <-c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec')
+          df$date <- factor(df$date,levels = c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'))
+          return(df)
+        }
+        else if(input$tofrom == 'From'){
+          df <- data[data$`Pickup Community Area` == communityArea()]
+          df <- group_by(df,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
+          colnames(df) = c("date","rides")
+          df$date = substr(df$date,5,6)
+          df <- group_by(df,date) %>% summarise(rides = sum(rides))
+          colnames(df) = c("date","rides")
+          df$date <-c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec')
+          df$date <- factor(df$date,levels = c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'))
+          return(df)
+        }
+        
+      }
     })
+
     output$all_rides_monthly <- renderPlot({
       df <- rides_monthly()
       ggplot(df, aes(x=date,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
@@ -288,11 +371,18 @@ server <- function(input, output,session) {
     })
     
     binned_mileage_parts <- reactive({
-      if(input$parts == 'Default'){
+      if(input$parts == 'Default' | communityArea() == -1){
         return(data)
       }
-      else{
-        return(subset(data,Company==input$compNames))
+      else if(input$parts == 'Community' ){
+        if(input$tofrom == 'To'){
+          df <- data[data$`Dropoff Community Area` == communityArea()]
+          return(df)
+        }
+        else if(input$tofrom == 'From'){
+          df <- data[data$`Pickup Community Area` == communityArea()]
+          return(df)
+        }
       }
     })
     mileagedf <- reactive({
@@ -328,7 +418,7 @@ server <- function(input, output,session) {
     })
     
     triptime <- reactive({
-      if(input$parts == 'Default'){
+      if(input$parts == 'Default' | communityArea() == -1){
         df <- data.table(data$`Trip Seconds`)
         colnames(df) = c("seconds")
         df <- df %>% mutate(bin = cut(seconds, breaks=c(59,180,360,600,900,1800,3600,5400,7200,10800,18000)))
@@ -338,11 +428,42 @@ server <- function(input, output,session) {
         df$seconds <- factor(df$seconds,levels =  c('(59,180]','(180,360]','(360,600]','(600,900]','(900,1800]','(1800,3600]','(3600,5400]','(5400,7200]','(7200,10800]','(10800,18000]'))
         return(df)
       }
+      else if(input$parts == 'Community'){
+        if(input$tofrom == 'To'){
+          df <- data[data$`Dropoff Community Area` == communityArea()]
+          df <- data.table(df$`Trip Seconds`)
+          colnames(df) = c("seconds")
+          df <- df %>% mutate(bin = cut(seconds, breaks=c(59,180,360,600,900,1800,3600,5400,7200,10800,18000)))
+          df<- group_by(df,bin) %>% summarise(rides = length(seconds))
+          colnames(df) = c("seconds","rides")
+          df$seconds <- c('(59,180]','(180,360]','(360,600]','(600,900]','(900,1800]','(1800,3600]','(3600,5400]','(5400,7200]','(7200,10800]','(10800,18000]')
+          df$seconds <- factor(df$seconds,levels =  c('(59,180]','(180,360]','(360,600]','(600,900]','(900,1800]','(1800,3600]','(3600,5400]','(5400,7200]','(7200,10800]','(10800,18000]'))
+          return(df)
+        }
+        else if(input$tofrom == 'From'){
+          df <- data[data$`Pickup Community Area` == communityArea()]
+          df <- data.table(df$`Trip Seconds`)
+          colnames(df) = c("seconds")
+          df <- df %>% mutate(bin = cut(seconds, breaks=c(59,180,360,600,900,1800,3600,5400,7200,10800,18000)))
+          df<- group_by(df,bin) %>% summarise(rides = length(seconds))
+          colnames(df) = c("seconds","rides")
+          df$seconds <- c('(59,180]','(180,360]','(360,600]','(600,900]','(900,1800]','(1800,3600]','(3600,5400]','(5400,7200]','(7200,10800]','(10800,18000]')
+          df$seconds <- factor(df$seconds,levels =  c('(59,180]','(180,360]','(360,600]','(600,900]','(900,1800]','(1800,3600]','(3600,5400]','(5400,7200]','(7200,10800]','(10800,18000]'))
+          return(df)
+        }
+        
+      }
     })
     output$all_trip_time <- renderPlot({
       df <- triptime()
       ggplot(df, aes(x=seconds,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
         labs(x="Seconds", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for time of ride') +scale_x_discrete(guide = guide_axis(angle = 90))    
+    })
+    
+    
+    
+    output$perc_graph <- renderUI({
+      
     })
     
     output$leaflet <- renderLeaflet({
