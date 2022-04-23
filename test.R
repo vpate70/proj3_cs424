@@ -42,3 +42,5 @@ test<- 5
 get(x)
 
 data[data$`Dropoff Community Area` == 4]
+
+x <- paste(' ','23','42')
