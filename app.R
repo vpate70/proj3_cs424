@@ -164,6 +164,7 @@ ui <- dashboardPage(
                fluidRow(
                  verticalLayout(
                  uiOutput("perc_graph",width='100%'),
+                 tags$style(type = "text/css", "#leaflet {height: calc(65vh - 80px) !important;}"),
                  leafletOutput("leaflet")
                  )
                )
@@ -809,13 +810,13 @@ server <- function(input, output,session) {
       if(input$parts == 'Default' | (communityArea() == 78 & input$parts != 'Company') | (input$parts == 'Company' & input$compNames == 'All Taxi Companies' )){
         
         leaflet()  %>% addTiles() %>% 
-          setView(lng = -87.683177, lat = 41.921832, zoom = 11) %>% 
+          setView(lng = -87.623177, lat = 41.871832, zoom = 11) %>% 
           addPolygons(data=dt,weight=2,fillOpacity = 0.7,color = "grey"                      ) 
       }
       else if(input$parts == 'Community'){
         mypal <- colorBin("Blues", perc, bins = c(0,.5,1,2,4,8,16,100))
         leaflet()  %>% addTiles() %>% 
-          setView(lng = -87.683177, lat = 41.921832, zoom = 11) %>% 
+          setView(lng = -87.623177, lat = 41.871832, zoom = 11) %>% 
           addPolygons(data=dt,weight=2,fillOpacity = 0.7,color = "black",
                       fillColor = mypal(perc), label = paste(dt$community,perc), layerId = dt@data$community) %>%
           addLegend(position = "bottomright", pal = mypal, values = perc,
@@ -828,7 +829,7 @@ server <- function(input, output,session) {
       else if (input$parts == 'Company'){
         mypal <- colorBin("Blues", perc, bins = c(0,.5,1,2,4,8,16,100))
         leaflet()  %>% addTiles() %>% 
-          setView(lng = -87.683177, lat = 41.921832, zoom = 11) %>% 
+          setView(lng = -87.623177, lat = 41.871832, zoom = 11) %>% 
           addPolygons(data=dt,weight=2,fillOpacity = 0.7,color = "black",
                       fillColor = mypal(perc), label = paste(dt$community,perc), layerId = dt@data$community) %>%
           addLegend(position = "bottomright", pal = mypal, values = perc,
