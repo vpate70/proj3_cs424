@@ -129,14 +129,24 @@ ui <- dashboardPage(
                    #Options for right graphs
                    menuItem("Formats",
                             selectInput("timeFormat", "Time", c('12 hour','24 hour'), selected = "24 hour"),
-                            selectInput("distUnit", "Distance Unit", c('mile','km'), selected = "mile")
+                            selectInput("distUnit", "Distance Unit", c('mile','km'), selected = "mile"),
+                            selectInput("table",'Table',c('Graph','Table'),selected = 'Graph')
                    ),
                    menuItem("Select options",
-                            selectInput("table",'Table',c('Graph','Table'),selected = 'Graph'),
-                            selectInput("parts",'Parts',c('Default','Community','Company'),selected = 'Community'),
-                            selectInput("compNames", "Company", com, selected = "5 Star Taxi"),
-                            selectInput("comArea","Community Area", append(sort(shapeData$community),'City_of_Chicago'), selected = 'WEST_LAWN'),
+                            
+                            selectInput("parts",'Parts',c('Default','Community','Company'),selected = 'Default'),
+                            conditionalPanel(
+                              condition = "input.parts == 'Company'",
+                            selectInput("compNames", "Company", com, selected = "5 Star Taxi")
+                            ),
+                            conditionalPanel(
+                              condition = "input.parts == 'Community'",
+                            selectInput("comArea","Community Area", append(sort(shapeData$community),'City_of_Chicago'), selected = 'City_of_Chicago')
+                            ),
+                            conditionalPanel(
+                              condition = "input.parts != 'Default'",
                             selectInput("tofrom", "To/From", c("To","From"),selected ='To')
+                            )
                    ),
                    
                    #Option to change page to about section
@@ -210,7 +220,7 @@ server <- function(input, output,session) {
     return(get(input$comArea))
   })
     rides_year_day <- reactive({
-      if(input$parts == 'Default' || communityArea() == 78){
+      if(input$parts == 'Default' | (communityArea() == 78 &  input$parts != 'Company')){
         df <- group_by(data,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
         colnames(df) = c("date","rides")
         df$date = ymd(df$date)
@@ -232,10 +242,27 @@ server <- function(input, output,session) {
           return(df)
         }
       }
+      else if(input$parts == 'Company'){
+        if(input$tofrom == 'To'){
+          df <- data[data$Company == input$compNames]
+          df <- group_by(df,`Trip Start Timestamp`) %>% summarise(rides = length(`Dropoff Community Area`))
+          colnames(df) = c("date","rides")
+          df$date = ymd(df$date)
+          return(df)
+        }
+        else if(input$tofrom == 'From'){
+          df <- data[data$Company == input$compNames]
+          df <- group_by(df,`Trip Start Timestamp`) %>% summarise(rides = length(`Pickup Community Area`))
+          colnames(df) = c("date","rides")
+          df$date = ymd(df$date)
+          return(df)
+        }
+      }
     })
     
     output$all_rides_year_day <- renderUI({
       df <- rides_year_day()
+      verticalLayout(
       conditionalPanel(
         condition = "input.table == 'Graph'",
         verticalLayout(
@@ -244,11 +271,21 @@ server <- function(input, output,session) {
             labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each day')
           })
         )
+      ),
+      conditionalPanel(
+        condition = "input.table == 'Table'",
+        box(DT::renderDataTable(
+          df,
+          options = list(searching = FALSE, pageLength = 7, lengthChange = FALSE, order = list(list(1, 'desc'))
+          ), rownames = FALSE
+        )
+        )
+      )
       )
     })
     
     rides_hour_day <- reactive({
-      if(input$parts == "Default" | communityArea() == 78){
+      if(input$parts == "Default" | communityArea() == 78 & input$parts != 'Company'){
         df <- group_by(data,Hour) %>% summarise(rides = length(`Trip Seconds`))
         return(df)
       }
@@ -265,21 +302,32 @@ server <- function(input, output,session) {
         }
         
       }
+      
+      else if(input$parts == 'Company'){
+        if(input$tofrom == 'To'){
+          df <- data[data$Company == input$compNames]
+          df <- group_by(df,Hour) %>% summarise(rides = length(`Trip Seconds`))
+          return(df)
+        }
+        else if(input$tofrom == 'From'){
+          df <- data[data$Company == input$compNames]
+          df <- group_by(df,Hour) %>% summarise(rides = length(`Trip Seconds`))
+          return(df)
+        }
+      }
     })
     
     timeform <- reactive({
       df <- rides_hour_day()
       colnames(df) = c("hour","rides")
-      if(input$timeFormat == '12 hour'){
+      if(input$timeFormat == '12 hour'){ #add 0's
         ampm <- c('12 AM', '1 AM', '2 AM', '3 AM', '4 AM', '5 AM', '6 AM', '7 AM', '8 AM', '9 AM', '10 AM', '11 AM','12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM', '7 PM', '8 PM', '9 PM', '10 PM', '11 PM' )
-        df$hour <- ampm
+        df$hour <- lapply(df$hour, function(x) ampm[x+1])
         df$hour <- factor(df$hour,levels =  ampm)
         return(df)
       }
       else{
         timeasstr <- c('0','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23')
-        df$hour <- timeasstr
-        df$hour <- factor(df$hour,levels =  timeasstr)
         return(df)
       }
     })
@@ -295,6 +343,15 @@ server <- function(input, output,session) {
               labs(x="Hour", y="Rides")+scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each hour') + scale_x_discrete(guide = guide_axis(angle = 90)) 
           })
           )
+        ),
+        conditionalPanel(
+          condition = "input.table == 'Table'",
+          box(DT::renderDataTable(
+            df,
+            options = list(searching = FALSE, pageLength = 7, lengthChange = FALSE, order = list(list(1, 'desc'))
+            ), rownames = FALSE
+          )
+          )
         )
       
       )
@@ -302,7 +359,7 @@ server <- function(input, output,session) {
     })
     
     rides_weekday <- reactive({
-      if(input$parts == "Default" | communityArea() == 78){
+      if(input$parts == "Default" | communityArea() == 78 & input$parts != 'Company'){
         df <- group_by(data,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
         colnames(df) = c("date","rides")
         df$date <- ymd(df$date)
@@ -330,8 +387,27 @@ server <- function(input, output,session) {
           colnames(df) = c("weekday","rides")
           return(df)
         }
-        
-        
+      }
+      
+      else if(input$parts == 'Company'){
+        if(input$tofrom == 'To'){
+          df <- data[data$Company == input$compNames]
+          df <- group_by(df,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
+          colnames(df) = c("date","rides")
+          df$date <- ymd(df$date)
+          df$date<- lubridate::wday(df$date,abbr = TRUE, label = TRUE)
+          colnames(df) = c("weekday","rides")
+          return(df)
+        }
+        else if(input$tofrom == 'From'){
+          df <- data[data$Company == input$compNames]
+          df <- group_by(df,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
+          colnames(df) = c("date","rides")
+          df$date <- ymd(df$date)
+          df$date<- lubridate::wday(df$date,abbr = TRUE, label = TRUE)
+          colnames(df) = c("weekday","rides")
+          return(df)
+        }
       }
     })
     
@@ -347,12 +423,21 @@ server <- function(input, output,session) {
             
             
           })
+        ),
+        conditionalPanel(
+          condition = "input.table == 'Table'",
+          box(DT::renderDataTable(
+            df,
+            options = list(searching = FALSE, pageLength = 7, lengthChange = FALSE, order = list(list(1, 'desc'))
+            ), rownames = FALSE
+          )
+          )
         )
       )
     })
 
     rides_monthly <- reactive({
-      if(input$parts == "Default" | communityArea() == 78){
+      if(input$parts == "Default" | communityArea() == 78 & input$parts != 'Company'){
         df <- group_by(data,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
         colnames(df) = c("date","rides")
         df$date = substr(df$date,5,6)
@@ -362,7 +447,7 @@ server <- function(input, output,session) {
         df$date <- factor(df$date,levels = c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'))
         return(df)
       }
-      else if(input$parts == 'Community'| communityArea() == 78){
+      else if(input$parts == 'Community'| communityArea() == 78 & input$parts != 'Company'){
         if(input$tofrom == 'To'){
           df <- data[data$`Dropoff Community Area` == communityArea()]
           df <- group_by(df,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
@@ -387,6 +472,17 @@ server <- function(input, output,session) {
         }
         
       }
+      
+      else if(input$parts == 'Company'){
+          df <- data[data$Company == input$compNames]
+          df <- group_by(df,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
+          colnames(df) = c("date","rides")
+          df$date <- ymd(df$date)
+          df$date<- lubridate::month(df$date,abbr = TRUE, label = TRUE)
+          df <- group_by(df,date) %>% summarise(rides = sum(rides))
+          colnames(df) = c("date","rides")
+          return(df)
+      }
     })
 
     output$all_rides_monthly <- renderUI({
@@ -400,12 +496,21 @@ server <- function(input, output,session) {
             
           })
           
+        ),
+        conditionalPanel(
+          condition = "input.table == 'Table'",
+          box(DT::renderDataTable(
+            df,
+            options = list(searching = FALSE, pageLength = 7, lengthChange = FALSE, order = list(list(1, 'desc'))
+            ), rownames = FALSE
+          )
+          )
         )
       )
     })
     
     binned_mileage_parts <- reactive({
-      if(input$parts == 'Default' | communityArea() == 78){
+      if(input$parts == 'Default' | communityArea() == 78 & input$parts != 'Company'){
         return(data)
       }
       else if(input$parts == 'Community' ){
@@ -418,6 +523,12 @@ server <- function(input, output,session) {
           return(df)
         }
       }
+      
+      else if(input$parts == 'Company'){
+        df <- data[data$Company == input$compNames]
+        return(df)
+      }
+      
     })
     mileagedf <- reactive({
       df<-binned_mileage_parts()
@@ -454,13 +565,21 @@ server <- function(input, output,session) {
             ggplot(df, aes(x=unit_dist,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
               labs(x=input$distUnit, y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for distance') +scale_x_discrete(guide = guide_axis(angle = 90))    
           })
+        ),
+        conditionalPanel(
+          condition = "input.table == 'Table'",
+          box(DT::renderDataTable(
+            df,
+            options = list(searching = FALSE, pageLength = 7, lengthChange = FALSE, order = list(list(1, 'desc'))
+            ), rownames = FALSE
+          )
+          )
         )
       )
     })
     
-    #fix bins sometimes dont exists WEST_LAWN from
     triptime <- reactive({
-      if(input$parts == 'Default' | communityArea() == 78){
+      if(input$parts == 'Default' | communityArea() == 78 & input$parts != 'Company'){
         df <- data.table(data$`Trip Seconds`)
         colnames(df) = c("seconds")
         df <- df %>% mutate(bin = cut(seconds, breaks=c(59,180,360,600,900,1800,3600,5400,7200,10800,18000)))
@@ -489,6 +608,16 @@ server <- function(input, output,session) {
         }
         
       }
+      
+      else if(input$parts == 'Company'){
+        df <- data[data$Company == input$compNames]
+        df <- data.table(df$`Trip Seconds`)
+        colnames(df) = c("seconds")
+        df <- df %>% mutate(bin = cut(seconds, breaks=c(59,180,360,600,900,1800,3600,5400,7200,10800,18000)))
+        df<- group_by(df,bin) %>% summarise(rides = length(seconds))
+        colnames(df) = c("seconds","rides")
+        return(df)
+      }
     })
     output$all_trip_time <- renderUI({
       df <- triptime()
@@ -499,15 +628,25 @@ server <- function(input, output,session) {
             ggplot(df, aes(x=seconds,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
               labs(x="Seconds", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for time of ride') +scale_x_discrete(guide = guide_axis(angle = 90))    
           })
+        ),
+        conditionalPanel(
+          condition = "input.table == 'Table'",
+          box(DT::renderDataTable(
+            df,
+            options = list(searching = FALSE, pageLength = 7, lengthChange = FALSE, order = list(list(1, 'desc'))
+            ), rownames = FALSE
+          )
+          )
         )
       )
+      
     })
       
     
     percent_gr <- reactive({
-      if(input$parts == 'Default' | communityArea() == 78){
+      if(input$parts == 'Default' | communityArea() == 78 & input$parts != 'Company'){
         df <- data.table(c('Chicago'),c(1))
-        colnames(df) <- c('area','perc')
+        colnames(df) <- c('community','perc')
         return(df)
       }
       else if(input$parts == 'Community'){
@@ -565,18 +704,39 @@ server <- function(input, output,session) {
         }
 
       }
+      else if(input$parts == 'Company'){
+        
+      }
     })
     
     output$perc_graph <- renderUI({
       df <- percent_gr()
       verticalLayout(
+        conditionalPanel(
+          condition = "input.table == 'Graph'",
       renderPlot({
       ggplot(df, aes(x=community,y=perc)) + geom_bar( stat='identity', fill='steelblue') +
-        labs(x="Area", y="percent")+ scale_y_continuous(label=comma) +ggtitle(label = paste('%',input$tofrom, input$comArea)) +scale_x_discrete(guide = guide_axis(angle = 90))    
-      })
+        labs(x="Area", y="percent")+ scale_y_continuous(label=comma) +ggtitle(label = paste('%')) +scale_x_discrete(guide = guide_axis(angle = 90))    
+      })),
+      conditionalPanel(
+        condition = "input.table == 'Table'",
+        box(DT::renderDataTable(
+          df,
+          options = list(searching = FALSE, pageLength = 7, lengthChange = FALSE, order = list(list(1, 'desc'))
+          ), rownames = FALSE
+        )
+        )
+      )
       )
     })
     
+    observeEvent(input$map_shape_click,{
+      click <- input$map_shape_click
+      map<-leafletProxy(mapId = "leaf",session)
+      print(click$id)
+      updateSelectInput(session, "comArea","Community Area", append(sort(shapeData$community),c('City_of_Chicago',click$id)), selected = click$id)
+
+    })
     
     #three differ leaflets
     output$leaflet <- renderLeaflet({
@@ -593,10 +753,12 @@ server <- function(input, output,session) {
       leaflet()  %>% addTiles() %>% 
         setView(lng = -87.683177, lat = 41.921832, zoom = 11) %>% 
         addPolygons(data=dt,weight=2,fillOpacity = 0.7,
-                    fillColor = mypal(dt@data$perc), label = perc) %>%
+                    fillColor = mypal(perc), label = perc) %>%
         addLegend(position = "bottomright", pal = mypal, values = perc,
                 title ='percent',
-                opacity = 0.7)
+                opacity = 0.7) 
+  
+        
       
     })
 }
