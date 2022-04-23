@@ -107,7 +107,7 @@ City_of_Chicago <- 78
 
 comAreaList <- c('ROGERS_PARK','WEST_RIDGE','UPTOWN','LINCOLN_SQUARE','NORTH_CENTER','LAKE_VIEW','LINCOLN_PARK','NEAR_NORTH_SIDE','EDISON_PARK','NORWOOD_PARK','JEFFERSON_PARK','FOREST_GLEN','NORTH_PARK','ALBANY_PARK','PORTAGE_PARK','IRVING_PARK','DUNNING','MONTCLARE','BELMONT_CRAGIN','HERMOSA','AVONDALE','LOGAN_SQUARE','HUMBOLDT_PARK','WEST_TOWN','AUSTIN','WEST_GARFIELD_PARK','EAST_GARFIELD_PARK','NEAR_WEST_SIDE','NORTH_LAWNDALE','SOUTH_LAWNDALE','LOWER_WEST_SIDE','LOOP','NEAR_SOUTH_SIDE','ARMOUR_SQUARE','DOUGLAS','OAKLAND','FULLER_PARK','GRAND_BOULEVARD','KENWOOD','WASHINGTON_PARK','HYDE_PARK','WOODLAWN','SOUTH_SHORE','CHATHAM','AVALON_PARK','SOUTH_CHICAGO','BURNSIDE','CALUMET_HEIGHTS','ROSELAND','PULLMAN','SOUTH_DEERING','EAST_SIDE','WEST_PULLMAN','RIVERDALE','HEGEWISCH','GARFIELD_RIDGE','ARCHER_HEIGHTS','BRIGHTON_PARK','MCKINLEY_PARK','BRIDGEPORT','NEW_CITY','WEST_ELSDON','GAGE_PARK','CLEARING','WEST_LAWN','CHICAGO_LAWN','WEST_ENGLEWOOD','ENGLEWOOD','GREATER_GRAND_CROSSING','ASHBURN','AUBURN_GRESHAM','BEVERLY','WASHINGTON_HEIGHTS','MOUNT_GREENWOOD','MORGAN_PARK','OHARE','EDGEWATER')
 
-com <- c('All','24 Seven Taxi','312 Medallion Mgmt.','5 Star Taxi','Adwar H. Nikola','Ahzmi','American United','American United Taxi','Arrington Ent.','Babylon Express','Benny Jona','Blue Diamond','Blue Ribbon Taxi','Checker Taxi','Chicago Carriage Cab','Chicago Ind.','Chicago Medallion Mgmt.','Chicago Star Taxicab','Chicago Taxicab','Choice Taxi','Chuks Cab','City Svc.','David K. Cab','Flash Cab','G.L.B. Cab','Globe Taxi','Gold Coast Taxi','JBL Cab.','Jay Kim','KOAM Taxi','Leonard Cab','Luhak','Medallion Leasin','Metro Jet Taxi A','N and W Cab','Nova Taxi','Omar Jada','Patriot Taxi Dba Peace Taxi','Petani Cab','RC Andrews Cab','Salifu Bawa','Sam Mestas','Santamaria Express','Sbeih','Sergey Cab','Setare','Star North Mgmt.','Sun Taxi','Tasha ride','Taxi Aff. Svc. Yellow','Taxi Aff. Svcs.','Taxicab Ins. Agcy.','Top Cab Aff.','U Taxicab','Yellow Cab')
+com <- c('24 Seven Taxi','312 Medallion Mgmt.','5 Star Taxi','Adwar H. Nikola','Ahzmi','American United','American United Taxi','Arrington Ent.','Babylon Express','Benny Jona','Blue Diamond','Blue Ribbon Taxi','Checker Taxi','Chicago Carriage Cab','Chicago Ind.','Chicago Medallion Mgmt.','Chicago Star Taxicab','Chicago Taxicab','Choice Taxi','Chuks Cab','City Svc.','David K. Cab','Flash Cab','G.L.B. Cab','Globe Taxi','Gold Coast Taxi','JBL Cab.','Jay Kim','KOAM Taxi','Leonard Cab','Luhak','Medallion Leasin','Metro Jet Taxi A','N and W Cab','Nova Taxi','Omar Jada','Patriot Taxi Dba Peace Taxi','Petani Cab','RC Andrews Cab','Salifu Bawa','Sam Mestas','Santamaria Express','Sbeih','Sergey Cab','Setare','Star North Mgmt.','Sun Taxi','Tasha ride','Taxi Aff. Svc. Yellow','Taxi Aff. Svcs.','Taxicab Ins. Agcy.','Top Cab Aff.','U Taxicab','Yellow Cab')
 # Define UI for application
 ui <- dashboardPage(
   dashboardHeader(title = "CS 424 Spring 2022 Project 3"),
@@ -137,11 +137,11 @@ ui <- dashboardPage(
                             selectInput("parts",'Parts',c('Default','Community','Company'),selected = 'Default'),
                             conditionalPanel(
                               condition = "input.parts == 'Company'",
-                            selectInput("compNames", "Company", com, selected = "5 Star Taxi")
+                            selectInput("compNames", "Company", append(com,'All Taxi Companies'), selected = "5 Star Taxi")
                             ),
                             conditionalPanel(
                               condition = "input.parts == 'Community'",
-                            selectInput("comArea","Community Area", append(sort(shapeData$community),'City_of_Chicago'), selected = 'City_of_Chicago')
+                            selectInput("comArea","Community Area", append(sort(shapeData$community),'City_of_Chicago'), selected = 'DOUGLAS')
                             ),
                             conditionalPanel(
                               condition = "input.parts != 'Default'",
@@ -220,7 +220,7 @@ server <- function(input, output,session) {
     return(get(input$comArea))
   })
     rides_year_day <- reactive({
-      if(input$parts == 'Default' | (communityArea() == 78 &  input$parts != 'Company')){
+      if(input$parts == 'Default' | (communityArea() == 78 &  input$parts != 'Company') | (input$parts == 'Company' & input$compNames == 'All Taxi Companies' )){
         df <- group_by(data,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
         colnames(df) = c("date","rides")
         df$date = ymd(df$date)
@@ -285,7 +285,7 @@ server <- function(input, output,session) {
     })
     
     rides_hour_day <- reactive({
-      if(input$parts == "Default" | communityArea() == 78 & input$parts != 'Company'){
+      if(input$parts == "Default" | (communityArea() == 78 & input$parts != 'Company') | (input$parts == 'Company' & input$compNames == 'All Taxi Companies' )){
         df <- group_by(data,Hour) %>% summarise(rides = length(`Trip Seconds`))
         return(df)
       }
@@ -359,7 +359,7 @@ server <- function(input, output,session) {
     })
     
     rides_weekday <- reactive({
-      if(input$parts == "Default" | communityArea() == 78 & input$parts != 'Company'){
+      if(input$parts == "Default" | (communityArea() == 78 & input$parts != 'Company') | (input$parts == 'Company' & input$compNames == 'All Taxi Companies' )){
         df <- group_by(data,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
         colnames(df) = c("date","rides")
         df$date <- ymd(df$date)
@@ -437,7 +437,7 @@ server <- function(input, output,session) {
     })
 
     rides_monthly <- reactive({
-      if(input$parts == "Default" | communityArea() == 78 & input$parts != 'Company'){
+      if(input$parts == "Default" | (communityArea() == 78 & input$parts != 'Company') | (input$parts == 'Company' & input$compNames == 'All Taxi Companies' )){
         df <- group_by(data,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
         colnames(df) = c("date","rides")
         df$date = substr(df$date,5,6)
@@ -447,7 +447,7 @@ server <- function(input, output,session) {
         df$date <- factor(df$date,levels = c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'))
         return(df)
       }
-      else if(input$parts == 'Community'| communityArea() == 78 & input$parts != 'Company'){
+      else if(input$parts == 'Community'){
         if(input$tofrom == 'To'){
           df <- data[data$`Dropoff Community Area` == communityArea()]
           df <- group_by(df,`Trip Start Timestamp`) %>% summarise(rides = length(`Trip Seconds`))
@@ -510,7 +510,7 @@ server <- function(input, output,session) {
     })
     
     binned_mileage_parts <- reactive({
-      if(input$parts == 'Default' | communityArea() == 78 & input$parts != 'Company'){
+      if(input$parts == 'Default' | (communityArea() == 78 & input$parts != 'Company') | (input$parts == 'Company' & input$compNames == 'All Taxi Companies' )){
         return(data)
       }
       else if(input$parts == 'Community' ){
@@ -579,7 +579,7 @@ server <- function(input, output,session) {
     })
     
     triptime <- reactive({
-      if(input$parts == 'Default' | communityArea() == 78 & input$parts != 'Company'){
+      if(input$parts == 'Default' | (communityArea() == 78 & input$parts != 'Company') | (input$parts == 'Company' & input$compNames == 'All Taxi Companies' )){
         df <- data.table(data$`Trip Seconds`)
         colnames(df) = c("seconds")
         df <- df %>% mutate(bin = cut(seconds, breaks=c(59,180,360,600,900,1800,3600,5400,7200,10800,18000)))
@@ -644,7 +644,7 @@ server <- function(input, output,session) {
       
     
     percent_gr <- reactive({
-      if(input$parts == 'Default' | communityArea() == 78 & input$parts != 'Company'){
+      if(input$parts == 'Default' | (communityArea() == 78 & input$parts != 'Company') | (input$parts == 'Company' & input$compNames == 'All Taxi Companies' )){
         df <- data.table(c('Chicago'),c(1))
         colnames(df) <- c('community','perc')
         return(df)
