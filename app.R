@@ -466,8 +466,6 @@ server <- function(input, output,session) {
         df <- df %>% mutate(bin = cut(seconds, breaks=c(59,180,360,600,900,1800,3600,5400,7200,10800,18000)))
         df<- group_by(df,bin) %>% summarise(rides = length(seconds))
         colnames(df) = c("seconds","rides")
-        df$seconds <- c('(59,180]','(180,360]','(360,600]','(600,900]','(900,1800]','(1800,3600]','(3600,5400]','(5400,7200]','(7200,10800]','(10800,18000]')
-        df$seconds <- factor(df$seconds,levels =  c('(59,180]','(180,360]','(360,600]','(600,900]','(900,1800]','(1800,3600]','(3600,5400]','(5400,7200]','(7200,10800]','(10800,18000]'))
         return(df)
       }
       else if(input$parts == 'Community'){
@@ -478,8 +476,6 @@ server <- function(input, output,session) {
           df <- df %>% mutate(bin = cut(seconds, breaks=c(59,180,360,600,900,1800,3600,5400,7200,10800,18000)))
           df<- group_by(df,bin) %>% summarise(rides = length(seconds))
           colnames(df) = c("seconds","rides")
-          df$seconds <- c('(59,180]','(180,360]','(360,600]','(600,900]','(900,1800]','(1800,3600]','(3600,5400]','(5400,7200]','(7200,10800]','(10800,18000]')
-          df$seconds <- factor(df$seconds,levels =  c('(59,180]','(180,360]','(360,600]','(600,900]','(900,1800]','(1800,3600]','(3600,5400]','(5400,7200]','(7200,10800]','(10800,18000]'))
           return(df)
         }
         else if(input$tofrom == 'From'){
@@ -489,8 +485,6 @@ server <- function(input, output,session) {
           df <- df %>% mutate(bin = cut(seconds, breaks=c(59,180,360,600,900,1800,3600,5400,7200,10800,18000)))
           df<- group_by(df,bin) %>% summarise(rides = length(seconds))
           colnames(df) = c("seconds","rides")
-          df$seconds <- c('(59,180]','(180,360]','(360,600]','(600,900]','(900,1800]','(1800,3600]','(3600,5400]','(5400,7200]','(7200,10800]','(10800,18000]')
-          df$seconds <- factor(df$seconds,levels =  c('(59,180]','(180,360]','(360,600]','(600,900]','(900,1800]','(1800,3600]','(3600,5400]','(5400,7200]','(7200,10800]','(10800,18000]'))
           return(df)
         }
         
@@ -522,7 +516,7 @@ server <- function(input, output,session) {
           df <- group_by(df,`Pickup Community Area`) %>% summarise(perc = length(`Dropoff Community Area`))
           colnames(df) = c('area','perc')
           colsum <- sum(df$perc)
-          df$perc <- df$perc/colsum
+          df$perc <- (df$perc/colsum)*100
           df['area'] = lapply(df['area'],function(x) comAreaList[x])
           if(length(df['area']) < 77){
             area <- c()
@@ -548,7 +542,7 @@ server <- function(input, output,session) {
           df <- group_by(df,`Dropoff Community Area`) %>% summarise(perc = length(`Pickup Community Area`))
           colnames(df) = c('area','perc')
           colsum <- sum(df$perc)
-          df$perc <- df$perc/colsum
+          df$perc <- (df$perc/colsum)*100
           df['area'] = lapply(df['area'],function(x) comAreaList[x])
           if(length(df['area']) < 77){
             area <- c()
@@ -586,21 +580,24 @@ server <- function(input, output,session) {
     
     #three differ leaflets
     output$leaflet <- renderLeaflet({
-      if(input$comArea != 'City_of_Chicago'){
       df <- percent_gr()
       dt <- shapeData
-      dt@data <- inner_join(df,dt@data,by='community')
-      mypal <- colorBin("Greens", dt@data$perc, 6, pretty = FALSE)
+      perc <- c()
+      
+      for(e in dt@data$community){
+        perc <- append(perc, as.double(df[df$community == e][,2]))
+      }
+      
+
+      mypal <- colorBin("Blues", perc, bins = c(0,.5,1,2,4,8,16,100))
       leaflet()  %>% addTiles() %>% 
         setView(lng = -87.683177, lat = 41.921832, zoom = 11) %>% 
         addPolygons(data=dt,weight=2,fillOpacity = 0.7,
-                    fillColor = mypal(dt@data$perc)) %>%
-        addLegend(position = "bottomright", pal = mypal, values = dt@data$perc,
-                title = "percent",
-                opacity = 0.7) %>%
+                    fillColor = mypal(dt@data$perc), label = perc) %>%
+        addLegend(position = "bottomright", pal = mypal, values = perc,
+                title ='percent',
+                opacity = 0.7)
       
-        addMarkers()
-      }
     })
 }
 
