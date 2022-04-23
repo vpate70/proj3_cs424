@@ -270,7 +270,7 @@ server <- function(input, output,session) {
           renderPlot({
           ggplot(df, aes(x=date,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
             labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each day')
-          })
+          }, height = 600)
         )
       ),
       conditionalPanel(
@@ -342,7 +342,7 @@ server <- function(input, output,session) {
           renderPlot({
             ggplot(df, aes(x=hour,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
               labs(x="Hour", y="Rides")+scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each hour') + scale_x_discrete(guide = guide_axis(angle = 90)) 
-          })
+          }, height = 600)
           )
         ),
         conditionalPanel(
@@ -423,7 +423,7 @@ server <- function(input, output,session) {
               labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each week day')
             
             
-          })
+          }, height = 600)
         ),
         conditionalPanel(
           condition = "input.table == 'Table'",
@@ -495,7 +495,7 @@ server <- function(input, output,session) {
             ggplot(df, aes(x=date,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
               labs(x="Month", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each month')
             
-          })
+          }, height = 600)
           
         ),
         conditionalPanel(
@@ -565,7 +565,7 @@ server <- function(input, output,session) {
           renderPlot({
             ggplot(df, aes(x=unit_dist,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
               labs(x=input$distUnit, y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for distance') +scale_x_discrete(guide = guide_axis(angle = 90))    
-          })
+          }, height = 600)
         ),
         conditionalPanel(
           condition = "input.table == 'Table'",
@@ -628,7 +628,7 @@ server <- function(input, output,session) {
           renderPlot({
             ggplot(df, aes(x=seconds,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
               labs(x="Seconds", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for time of ride') +scale_x_discrete(guide = guide_axis(angle = 90))    
-          })
+          }, height = 600)
         ),
         conditionalPanel(
           condition = "input.table == 'Table'",
