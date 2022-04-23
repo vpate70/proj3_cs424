@@ -151,24 +151,38 @@ ui <- dashboardPage(
     conditionalPanel(
       condition = "input.pageOption == 'Data'",
       fluidRow(
-        column(6,
+        column(3,
                fluidRow(
-                 conditionalPanel(
-                   condition = "input.datesChange == 'Two Day Differ'",
-                   # plotOutput("main2",width="100%")
-                 ),
-                   verticalLayout(
-                   plotOutput("all_rides_hour_day",width="100%"),
-                   uiOutput("all_rides_year_day",width="100%"),
-                   plotOutput("all_rides_weekday",width="100%"),
-                   plotOutput("all_rides_monthly",width="100%"),
-                   plotOutput("all_binned_mileage",width="100%"),
-                   plotOutput("all_trip_time",width="100%"),
-                   uiOutput("perc_graph",width='100%'),
-                   leafletOutput("leaflet")
-                   )
-                 
-                 
+                 verticalLayout(
+                 uiOutput("perc_graph",width='100%'),
+                 leafletOutput("leaflet")
+                 )
+               )
+               
+        ),
+        column(3,
+          fluidRow(
+            verticalLayout(
+              uiOutput("all_rides_hour_day",width="100%"),
+              uiOutput("all_rides_year_day",width="100%")
+            )
+          )
+        ),
+        column(3,
+               fluidRow(
+                 verticalLayout(
+                   uiOutput("all_rides_weekday",width="100%"),
+                   uiOutput("all_rides_monthly",width="100%")
+                 )
+               )
+               
+        ),
+        column(3,
+               fluidRow(
+                 verticalLayout(
+                   uiOutput("all_binned_mileage",width="100%"),
+                   uiOutput("all_trip_time",width="100%")
+                 )
                )
                
         )
@@ -223,11 +237,14 @@ server <- function(input, output,session) {
     
     output$all_rides_year_day <- renderUI({
       df <- rides_year_day()
-      verticalLayout(
-        renderPlot({
-        ggplot(df, aes(x=date,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
-          labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each day')
-        })
+      conditionalPanel(
+        condition = "input.table == 'Graph'",
+        verticalLayout(
+          renderPlot({
+          ggplot(df, aes(x=date,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
+            labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each day')
+          })
+        )
       )
     })
     
@@ -268,10 +285,20 @@ server <- function(input, output,session) {
       }
     })
 
-    output$all_rides_hour_day <- renderPlot({
+    output$all_rides_hour_day <- renderUI({
       df <- timeform()
-      ggplot(df, aes(x=hour,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
-        labs(x="Hour", y="Rides")+scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each hour') + scale_x_discrete(guide = guide_axis(angle = 90)) 
+      verticalLayout(
+        conditionalPanel(
+          condition = "input.table == 'Graph'",
+          verticalLayout(
+          renderPlot({
+            ggplot(df, aes(x=hour,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
+              labs(x="Hour", y="Rides")+scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each hour') + scale_x_discrete(guide = guide_axis(angle = 90)) 
+          })
+          )
+        )
+      
+      )
       
     })
     
@@ -310,12 +337,19 @@ server <- function(input, output,session) {
     })
     
 
-    output$all_rides_weekday <- renderPlot({
+    output$all_rides_weekday <- renderUI({
       df <- rides_weekday()
-      ggplot(df, aes(x=weekday,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
-        labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each week day')
-      
-      
+      verticalLayout(
+        conditionalPanel(
+          condition = "input.table == 'Graph'",
+          renderPlot({
+            ggplot(df, aes(x=weekday,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
+              labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each week day')
+            
+            
+          })
+        )
+      )
     })
 
     rides_monthly <- reactive({
@@ -356,11 +390,19 @@ server <- function(input, output,session) {
       }
     })
 
-    output$all_rides_monthly <- renderPlot({
+    output$all_rides_monthly <- renderUI({
       df <- rides_monthly()
-      ggplot(df, aes(x=date,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
-        labs(x="Month", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each month')
-      
+      verticalLayout(
+        conditionalPanel(
+          condition = "input.table == 'Graph'",
+          renderPlot({
+            ggplot(df, aes(x=date,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
+              labs(x="Month", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each month')
+            
+          })
+          
+        )
+      )
     })
     
     binned_mileage_parts <- reactive({
@@ -404,10 +446,17 @@ server <- function(input, output,session) {
       
     })
     
-    output$all_binned_mileage <- renderPlot({
+    output$all_binned_mileage <- renderUI({
       df<-mileagedf()
-      ggplot(df, aes(x=unit_dist,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
-        labs(x=input$distUnit, y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for distance') +scale_x_discrete(guide = guide_axis(angle = 90))    
+      verticalLayout(
+        conditionalPanel(
+          condition = "input.table == 'Graph'",
+          renderPlot({
+            ggplot(df, aes(x=unit_dist,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
+              labs(x=input$distUnit, y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for distance') +scale_x_discrete(guide = guide_axis(angle = 90))    
+          })
+        )
+      )
     })
     
     triptime <- reactive({
@@ -447,11 +496,19 @@ server <- function(input, output,session) {
         
       }
     })
-    output$all_trip_time <- renderPlot({
+    output$all_trip_time <- renderUI({
       df <- triptime()
-      ggplot(df, aes(x=seconds,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
-        labs(x="Seconds", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for time of ride') +scale_x_discrete(guide = guide_axis(angle = 90))    
+      verticalLayout(
+        conditionalPanel(
+          condition = "input.table == 'Graph'",
+          renderPlot({
+            ggplot(df, aes(x=seconds,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
+              labs(x="Seconds", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for time of ride') +scale_x_discrete(guide = guide_axis(angle = 90))    
+          })
+        )
+      )
     })
+      
     
     percent_gr <- reactive({
       if(input$parts == 'Default' | communityArea() == 78){
