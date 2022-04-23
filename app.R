@@ -203,8 +203,8 @@ ui <- dashboardPage(
       condition = "input.pageOption == 'About'",
       fluidRow(
         h1("About Page"),
-        p("The data is from https://data.cityofchicago.org/Transportation/CTA-Ridership-L-Station-Entries-Daily-Totals/5neh-572f"),
-        p("and https://data.cityofchicago.org/Transportation/CTA-System-Information-List-of-L-Stops/8pix-ypme"),
+        p("The data is from https://data.cityofchicago.org/Transportation/Taxi-Trips-2019/h4cq-z3dy"),
+        p("and boundary data is from https://data.cityofchicago.org/Facilities-Geographic-Boundaries/Boundaries-Community-Areas-current-/cauq-8yn6"),
         p("Vivek Patel wrote this application."),
         p("Created: Spring 2022, April"),
         p("The application was created for Project 3 of Spring 2022 CS 424 with Dr. Johnson")
@@ -782,12 +782,13 @@ server <- function(input, output,session) {
       )
     })
     
-    observeEvent(input$map_shape_click,{
-      click <- input$map_shape_click
-      map<-leafletProxy(mapId = "leaf",session)
-      print(click$id)
+    observeEvent(input$leaflet_shape_click,{
+      if(input$parts == "Community"){
+      click <- input$leaflet_shape_click
+      map<-leafletProxy(mapId = "leaflet",session)
+      # print(click$id)
       updateSelectInput(session, "comArea","Community Area", append(sort(shapeData$community),c('City_of_Chicago',click$id)), selected = click$id)
-
+      }
     })
     
 
@@ -800,15 +801,42 @@ server <- function(input, output,session) {
         perc <- append(perc, as.double(df[df$community == e][,2]))
       }
       
-
-      mypal <- colorBin("Blues", perc, bins = c(0,.5,1,2,4,8,16,100))
-      leaflet()  %>% addTiles() %>% 
-        setView(lng = -87.683177, lat = 41.921832, zoom = 11) %>% 
-        addPolygons(data=dt,weight=2,fillOpacity = 0.7,
-                    fillColor = mypal(perc), label = perc) %>%
-        addLegend(position = "bottomright", pal = mypal, values = perc,
-                title ='percent',
-                opacity = 0.7) 
+      x <- comAreaList
+      
+      x <- x[x != input$comArea]
+      
+      x <- lapply(x, function(x) paste0(x,'1'))
+      if(input$parts == 'Default' | (communityArea() == 78 & input$parts != 'Company') | (input$parts == 'Company' & input$compNames == 'All Taxi Companies' )){
+        
+        leaflet()  %>% addTiles() %>% 
+          setView(lng = -87.683177, lat = 41.921832, zoom = 11) %>% 
+          addPolygons(data=dt,weight=2,fillOpacity = 0.7,color = "grey"                      ) 
+      }
+      else if(input$parts == 'Community'){
+        mypal <- colorBin("Blues", perc, bins = c(0,.5,1,2,4,8,16,100))
+        leaflet()  %>% addTiles() %>% 
+          setView(lng = -87.683177, lat = 41.921832, zoom = 11) %>% 
+          addPolygons(data=dt,weight=2,fillOpacity = 0.7,color = "black",
+                      fillColor = mypal(perc), label = paste(dt$community,perc), layerId = dt@data$community) %>%
+          addLegend(position = "bottomright", pal = mypal, values = perc,
+                    title ='percent',
+                    opacity = 0.7) %>%
+          addPolylines(data=dt,color = 'red', layerId = paste0(dt@data$community,1)) %>%
+          removeShape(layerId=x)
+        
+      }
+      else if (input$parts == 'Company'){
+        mypal <- colorBin("Blues", perc, bins = c(0,.5,1,2,4,8,16,100))
+        leaflet()  %>% addTiles() %>% 
+          setView(lng = -87.683177, lat = 41.921832, zoom = 11) %>% 
+          addPolygons(data=dt,weight=2,fillOpacity = 0.7,color = "black",
+                      fillColor = mypal(perc), label = paste(dt$community,perc), layerId = dt@data$community) %>%
+          addLegend(position = "bottomright", pal = mypal, values = perc,
+                    title ='percent',
+                    opacity = 0.7)
+        
+      }
+        
   
         
       
