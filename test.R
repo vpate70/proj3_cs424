@@ -44,3 +44,42 @@ get(x)
 data[data$`Dropoff Community Area` == 4]
 
 x <- paste(' ','23','42')
+
+mypal <- colorQuantile(palette = "RdYlBu", domain = c(0,50), n = 5, reverse = TRUE)
+LtoM <-colorRampPalette(c('red', 'red' ))
+Mid <- "snow3"
+MtoH <-colorRampPalette(c('green', 'darkgreen'))
+
+scale_fill_gradient2(low=LtoM(100), mid='snow3', high=MtoH(100)
+                     , space='Lab')
+
+
+df <- data.frame(c('test'),c('test2'))
+df[nrow(df) + 1,] <- c('2','5')
+
+comAreaList <- c('ROGERS_PARK','WEST_RIDGE','UPTOWN','LINCOLN_SQUARE','NORTH_CENTER','LAKE_VIEW','LINCOLN_PARK','NEAR_NORTH_SIDE','EDISON_PARK','NORWOOD_PARK','JEFFERSON_PARK','FOREST_GLEN','NORTH_PARK','ALBANY_PARK','PORTAGE_PARK','IRVING_PARK','DUNNING','MONTCLARE','BELMONT_CRAGIN','HERMOSA','AVONDALE','LOGAN_SQUARE','HUMBOLDT_PARK','WEST_TOWN','AUSTIN','WEST_GARFIELD_PARK','EAST_GARFIELD_PARK','NEAR_WEST_SIDE','NORTH_LAWNDALE','SOUTH_LAWNDALE','LOWER_WEST_SIDE','LOOP','NEAR_SOUTH_SIDE','ARMOUR_SQUARE','DOUGLAS','OAKLAND','FULLER_PARK','GRAND_BOULEVARD','KENWOOD','WASHINGTON_PARK','HYDE_PARK','WOODLAWN','SOUTH_SHORE','CHATHAM','AVALON_PARK','SOUTH_CHICAGO','BURNSIDE','CALUMET_HEIGHTS','ROSELAND','PULLMAN','SOUTH_DEERING','EAST_SIDE','WEST_PULLMAN','RIVERDALE','HEGEWISCH','GARFIELD_RIDGE','ARCHER_HEIGHTS','BRIGHTON_PARK','MCKINLEY_PARK','BRIDGEPORT','NEW_CITY','WEST_ELSDON','GAGE_PARK','CLEARING','WEST_LAWN','CHICAGO_LAWN','WEST_ENGLEWOOD','ENGLEWOOD','GREATER_GRAND_CROSSING','ASHBURN','AUBURN_GRESHAM','BEVERLY','WASHINGTON_HEIGHTS','MOUNT_GREENWOOD','MORGAN_PARK','OHARE','EDGEWATER')
+library(dplyr)
+df <- data[data$`Pickup Community Area` == 1]
+df <- group_by(df,`Dropoff Community Area`) %>% summarise(perc = length(`Pickup Community Area`))
+colnames(df) = c('area','perc')
+colsum <- sum(df$perc)
+df$perc <- df$perc/colsum
+df['area'] = lapply(df['area'],function(x) comAreaList[x])
+if(length(df['area']) < 77){
+  area <- c()
+  perc <- c()
+  for (e in comAreaList){
+    if(any(df['area']==e)){
+      
+    }
+    else{
+      area <- append(area,e)
+      perc <- append(perc,0)
+    }
+  }
+  
+  dt <- data.table(area,perc)
+  df <- bind_rows(dt,df)
+}
+df <-df[df$area == "MOUNT_GREENWOOD"]
+comAreaList == dif

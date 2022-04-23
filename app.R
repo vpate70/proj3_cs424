@@ -111,7 +111,6 @@ com <- c('All','24 Seven Taxi','312 Medallion Mgmt.','5 Star Taxi','Adwar H. Nik
 # Define UI for application
 ui <- dashboardPage(
   dashboardHeader(title = "CS 424 Spring 2022 Project 3"),
-  #edit to make mini menu items for both
   
   dashboardSidebar(disable = FALSE, collapsed = FALSE,
                    
@@ -524,6 +523,22 @@ server <- function(input, output,session) {
           colsum <- sum(df$perc)
           df$perc <- df$perc/colsum
           df['area'] = lapply(df['area'],function(x) comAreaList[x])
+          if(length(df['area']) < 77){
+            area <- c()
+            perc <- c()
+            for (e in comAreaList){
+              if(any(df['area']==e)){
+                
+              }
+              else{
+                area <- append(area,e)
+                perc <- append(perc,0)
+              }
+            }
+            
+            dt <- data.table(area,perc)
+            df <- bind_rows(dt,df)
+          }
           return(df)
         }
         else if(input$tofrom == 'From'){
@@ -533,6 +548,22 @@ server <- function(input, output,session) {
           colsum <- sum(df$perc)
           df$perc <- df$perc/colsum
           df['area'] = lapply(df['area'],function(x) comAreaList[x])
+          if(length(df['area']) < 77){
+            area <- c()
+            perc <- c()
+            for (e in comAreaList){
+              if(any(df['area']==e)){
+                
+              }
+              else{
+                area <- append(area,e)
+                perc <- append(perc,0)
+              }
+            }
+            
+            dt <- data.table(area,perc)
+            df <- bind_rows(dt,df)
+          }
           return(df)
         }
 
@@ -552,9 +583,10 @@ server <- function(input, output,session) {
     
     #three differ leaflets
     output$leaflet <- renderLeaflet({
+      df <- percent_gr()
       leaflet()  %>% addTiles() %>% 
         setView(lng = -87.683177, lat = 41.921832, zoom = 11) %>% 
-        addPolygons(data=shapeData,weight=5,col = 'grey')
+        addPolygons(data=shapeData,weight=5,col = 'grey',label = )
     })
 }
 
