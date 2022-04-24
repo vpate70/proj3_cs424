@@ -128,7 +128,7 @@ ui <- dashboardPage(
                    ),
                    #Options for right graphs
                    menuItem("Formats",
-                            selectInput("timeFormat", "Time", c('12 hour','24 hour'), selected = "24 hour"),
+                            selectInput("timeFormat", "Time", c('12 hour','24 hour'), selected = "12 hour"),
                             selectInput("distUnit", "Distance Unit", c('mile','km'), selected = "mile"),
                             selectInput("table",'Table',c('Graph','Table'),selected = 'Graph')
                    ),
@@ -216,7 +216,7 @@ ui <- dashboardPage(
 
 # Define server logic required to draw a histogram
 server <- function(input, output,session) {
-  # timeFormat c('12 hour','24 hour'), distUnit c('mile','km'), compNames c('All',...)
+  # timeFormat c('12 hour','24 hour'), distUnit c('mile','km'), compNames c(...)
   communityArea <- reactive({
     return(get(input$comArea))
   })
@@ -260,6 +260,17 @@ server <- function(input, output,session) {
         }
       }
     })
+    arydtitle <- reactive({
+      if(input$parts == 'Default' | (communityArea() == 78 &  input$parts != 'Company') | (input$parts == 'Company' & input$compNames == 'All Taxi Companies' )){
+        return(paste('Ridership each day - All'))
+      }
+      else if(input$parts == 'Community'){
+          return(paste('Ridership each day',input$tofrom, input$comArea))
+      }
+      else if(input$parts == 'Company'){
+        return(paste('Ridership each day for', input$compNames))
+      }
+    })
     
     output$all_rides_year_day <- renderUI({
       df <- rides_year_day()
@@ -269,7 +280,7 @@ server <- function(input, output,session) {
         verticalLayout(
           renderPlot({
           ggplot(df, aes(x=date,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
-            labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each day')
+            labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = arydtitle())
           }, height = 600)
         )
       ),
@@ -332,7 +343,19 @@ server <- function(input, output,session) {
         return(df)
       }
     })
-
+    
+    hourtitle <- reactive({
+      if(input$parts == 'Default' | (communityArea() == 78 &  input$parts != 'Company') | (input$parts == 'Company' & input$compNames == 'All Taxi Companies' )){
+        return(paste('Ridership each hour - All'))
+      }
+      else if(input$parts == 'Community'){
+        return(paste('Ridership each hour',input$tofrom, input$comArea))
+      }
+      else if(input$parts == 'Company'){
+        return(paste('Ridership each hour for', input$compNames))
+      }
+    })
+    
     output$all_rides_hour_day <- renderUI({
       df <- timeform()
       verticalLayout(
@@ -341,7 +364,7 @@ server <- function(input, output,session) {
           verticalLayout(
           renderPlot({
             ggplot(df, aes(x=hour,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
-              labs(x="Hour", y="Rides")+scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each hour') + scale_x_discrete(guide = guide_axis(angle = 90)) 
+              labs(x="Hour", y="Rides")+scale_y_continuous(label=comma) +ggtitle(label = hourtitle()) + scale_x_discrete(guide = guide_axis(angle = 90)) 
           }, height = 600)
           )
         ),
@@ -412,6 +435,18 @@ server <- function(input, output,session) {
       }
     })
     
+    weekdaytitle <- reactive({
+      if(input$parts == 'Default' | (communityArea() == 78 &  input$parts != 'Company') | (input$parts == 'Company' & input$compNames == 'All Taxi Companies' )){
+        return(paste('Ridership each weekday - All'))
+      }
+      else if(input$parts == 'Community'){
+        return(paste('Ridership each weekday',input$tofrom, input$comArea))
+      }
+      else if(input$parts == 'Company'){
+        return(paste('Ridership each weekday for', input$compNames))
+      }
+    })
+    
 
     output$all_rides_weekday <- renderUI({
       df <- rides_weekday()
@@ -420,7 +455,7 @@ server <- function(input, output,session) {
           condition = "input.table == 'Graph'",
           renderPlot({
             ggplot(df, aes(x=weekday,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
-              labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each week day')
+              labs(x="Day", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = weekdaytitle())
             
             
           }, height = 600)
@@ -485,6 +520,18 @@ server <- function(input, output,session) {
           return(df)
       }
     })
+    
+    monthlytitle <- reactive({
+      if(input$parts == 'Default' | (communityArea() == 78 &  input$parts != 'Company') | (input$parts == 'Company' & input$compNames == 'All Taxi Companies' )){
+        return(paste('Ridership each month - All'))
+      }
+      else if(input$parts == 'Community'){
+        return(paste('Ridership each month',input$tofrom, input$comArea))
+      }
+      else if(input$parts == 'Company'){
+        return(paste('Ridership each month for', input$compNames))
+      }
+    })
 
     output$all_rides_monthly <- renderUI({
       df <- rides_monthly()
@@ -493,7 +540,7 @@ server <- function(input, output,session) {
           condition = "input.table == 'Graph'",
           renderPlot({
             ggplot(df, aes(x=date,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
-              labs(x="Month", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for each month')
+              labs(x="Month", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = monthlytitle())
             
           }, height = 600)
           
@@ -557,6 +604,18 @@ server <- function(input, output,session) {
       
     })
     
+    miletitle <- reactive({
+      if(input$parts == 'Default' | (communityArea() == 78 &  input$parts != 'Company') | (input$parts == 'Company' & input$compNames == 'All Taxi Companies' )){
+        return(paste('Ridership',input$distUnit,'- All'))
+      }
+      else if(input$parts == 'Community'){
+        return(paste('Ridership',input$distUnit,input$tofrom, input$comArea))
+      }
+      else if(input$parts == 'Company'){
+        return(paste('Ridership',input$distUnit ,'for', input$compNames))
+      }
+    })
+    
     output$all_binned_mileage <- renderUI({
       df<-mileagedf()
       verticalLayout(
@@ -564,7 +623,7 @@ server <- function(input, output,session) {
           condition = "input.table == 'Graph'",
           renderPlot({
             ggplot(df, aes(x=unit_dist,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
-              labs(x=input$distUnit, y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for distance') +scale_x_discrete(guide = guide_axis(angle = 90))    
+              labs(x=input$distUnit, y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = miletitle()) +scale_x_discrete(guide = guide_axis(angle = 90))    
           }, height = 600)
         ),
         conditionalPanel(
@@ -620,6 +679,19 @@ server <- function(input, output,session) {
         return(df)
       }
     })
+    
+    timetitle <- reactive({
+      if(input$parts == 'Default' | (communityArea() == 78 &  input$parts != 'Company') | (input$parts == 'Company' & input$compNames == 'All Taxi Companies' )){
+        return(paste('Ridership Trip Time - All'))
+      }
+      else if(input$parts == 'Community'){
+        return(paste('Ridership Trip Time',input$tofrom, input$comArea))
+      }
+      else if(input$parts == 'Company'){
+        return(paste('Ridership Trip Time for', input$compNames))
+      }
+    })
+    
     output$all_trip_time <- renderUI({
       df <- triptime()
       verticalLayout(
@@ -627,7 +699,7 @@ server <- function(input, output,session) {
           condition = "input.table == 'Graph'",
           renderPlot({
             ggplot(df, aes(x=seconds,y=rides)) + geom_bar( stat='identity', fill='steelblue') +
-              labs(x="Seconds", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = 'Ridership for time of ride') +scale_x_discrete(guide = guide_axis(angle = 90))    
+              labs(x="Seconds", y="Rides")+ scale_y_continuous(label=comma) +ggtitle(label = timetitle()) +scale_x_discrete(guide = guide_axis(angle = 90))    
           }, height = 600)
         ),
         conditionalPanel(
@@ -769,7 +841,7 @@ server <- function(input, output,session) {
           condition = "input.table == 'Graph'",
       renderPlot({
       ggplot(df, aes(x=community,y=perc)) + geom_bar( stat='identity', fill='steelblue') +
-        labs(x="Area", y="percent")+ scale_y_continuous(label=comma) +ggtitle(label = paste('%')) +scale_x_discrete(guide = guide_axis(angle = 90))    
+        labs(x="Area", y="percent")+ scale_y_continuous(label=comma) +ggtitle(label = paste('% of Rides')) +scale_x_discrete(guide = guide_axis(angle = 90))    
       })),
       conditionalPanel(
         condition = "input.table == 'Table'",
